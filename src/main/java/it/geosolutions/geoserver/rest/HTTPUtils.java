@@ -25,41 +25,25 @@
 
 package it.geosolutions.geoserver.rest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
 import net.sf.json.JSON;
 import net.sf.json.JSONSerializer;
-
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpConnectionManager;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.methods.DeleteMethod;
-import org.apache.commons.httpclient.methods.EntityEnclosingMethod;
-import org.apache.commons.httpclient.methods.FileRequestEntity;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.RequestEntity;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.methods.*;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Low level HTTP utilities.
@@ -97,6 +81,7 @@ public class HTTPUtils {
         HttpConnectionManager connectionManager = client.getHttpConnectionManager();
         try {
             setAuth(client, url, username, pw);
+            setProxy(client);
             httpMethod = new GetMethod(url);
             connectionManager.getParams().setConnectionTimeout(5000);
             int status = client.executeMethod(httpMethod);
@@ -379,6 +364,7 @@ public class HTTPUtils {
         HttpConnectionManager connectionManager = client.getHttpConnectionManager();
         try {
             setAuth(client, url, username, pw);
+            setProxy(client);
             connectionManager.getParams().setConnectionTimeout(5000);
             if (requestEntity != null)
                 httpMethod.setRequestEntity(requestEntity);
@@ -421,6 +407,7 @@ public class HTTPUtils {
         HttpConnectionManager connectionManager = client.getHttpConnectionManager();
         try {
             setAuth(client, url, user, pw);
+            setProxy(client);
             httpMethod = new DeleteMethod(url);
             connectionManager.getParams().setConnectionTimeout(5000);
             int status = client.executeMethod(httpMethod);
@@ -468,6 +455,7 @@ public class HTTPUtils {
         HttpConnectionManager connectionManager = client.getHttpConnectionManager();
         try {
             setAuth(client, url, username, pw);
+            setProxy(client);
             httpMethod = new GetMethod(url);
             connectionManager.getParams().setConnectionTimeout(2000);
             int status = client.executeMethod(httpMethod);
@@ -505,6 +493,7 @@ public class HTTPUtils {
         HttpConnectionManager connectionManager = client.getHttpConnectionManager();
         try {
             setAuth(client, url, username, pw);
+            setProxy(client);
             httpMethod = new GetMethod(url);
             connectionManager.getParams().setConnectionTimeout(2000);
             int status = client.executeMethod(httpMethod);
@@ -542,6 +531,33 @@ public class HTTPUtils {
         } else {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Not setting credentials to access to " + url);
+            }
+        }
+    }
+
+    private static void setProxy(HttpClient client) {
+        String httpProxyHost = System.getProperty("http.proxyHost");
+        String httpProxyPort = System.getProperty("http.proxyPort");
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Found proxyHost " + httpProxyHost + " and proxyPort " + httpProxyPort);
+        }
+
+        if (httpProxyHost != null && httpProxyPort != null) {
+            try {
+                HostConfiguration hostConfiguration = client.getHostConfiguration();
+                hostConfiguration.setProxy(httpProxyHost, Integer.parseInt(httpProxyPort));
+                client.setHostConfiguration(hostConfiguration);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Successfully set proxyHost " + httpProxyHost +
+                            " and proxyPort " + httpProxyPort);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Error while setting the proxy", e);
+            }
+        } else {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Not proxyHost nor proxyPort found to set");
             }
         }
     }
