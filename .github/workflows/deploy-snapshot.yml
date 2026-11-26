@@ -1,0 +1,26 @@
+name: Deploy snapshot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+          server-id: maven.terrestris.de-snapshots
+          server-username: REPOSILITE_USER
+          server-password: REPOSILITE_TOKEN
+      - name: Deploy
+        run: mvn -B deploy
+        env:
+          REPOSILITE_USER: ${{ secrets.REPOSILITE_USER }}
+          REPOSILITE_TOKEN: ${{ secrets.REPOSILITE_TOKEN }}
